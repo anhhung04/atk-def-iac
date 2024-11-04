@@ -17,6 +17,7 @@ variable "proxmox_api_token_secret" {
 variable "vultr_api_key" {
   type = string
   sensitive = true
+  default = env("VULTR_API_KEY")
 }
 
 variable "region" {
