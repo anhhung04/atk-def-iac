@@ -1,0 +1,4 @@
+- name: Update timezone
+  ansible.builtin.command:
+    cmd: dpkg-reconfigure --frontend noninteractive tzdata
+  changed_when: false
