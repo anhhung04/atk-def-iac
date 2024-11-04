@@ -20,17 +20,23 @@ variable "vultr_api_key" {
   default = env("VULTR_API_KEY")
 }
 
+variable "digitalocean_api_token" {
+  type = string
+  sensitive = true
+  default = env("DIGITALOCEAN_API_TOKEN")
+}
+
 variable "region" {
   type = string
-  default = "sgp"
+  default = "sgp1"
 }
 
 variable "plan" {
   type = string
-  default = "vc2-2c-4gb"
+  default = "s-2vcpu-4gb"
 }
 
 variable "os_id" {
-  type = number
-  default = 1743
+  type = string
+  default = "ubuntu-22-04-x64"
 }

@@ -1,0 +1,165 @@
+---
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - iptables
+      - iptables-persistent
+      - ipset
+      - openvswitch-switch
+    state: present
+    update_cache: true
+
+- name: Stop Wireguard server
+  ansible.builtin.systemd:
+    name: "wg-quick@game"
+    state: stopped
+
+- name: Upload VPN server
+  ansible.builtin.copy:
+    src: "./out/server.conf"
+    dest: "/etc/wireguard/game.conf"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Start Wireguard server
+  ansible.builtin.systemd:
+    name: "wg-quick@game"
+    state: started
+    enabled: true
+
+- name: Enable iptables-persistent
+  ansible.builtin.systemd:
+    name: netfilter-persistent
+    state: started
+    enabled: true
+
+- name: Upload Network configs
+  ansible.builtin.copy:
+    src: "./10-vpn.yaml"
+    dest: "/etc/netplan/10-vpn.yaml"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Remove cloud-init
+  ansible.builtin.file:
+    path: "/etc/netplan/50-cloud-init.yaml"
+    state: absent
+
+- name: Apply new network configs
+  ansible.builtin.command:
+    cmd: netplan apply
+  register: netplan_apply
+  changed_when: netplan_apply.rc == 2
+
+- name: Upload ipset config
+  ansible.builtin.copy:
+    src: "./ipset"
+    dest: "/etc/network/if-pre-up.d/ipset"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Upload ipset service
+  ansible.builtin.copy:
+    src: "./ipset.service"
+    dest: "/etc/systemd/system/ipset.service"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Start ipset service
+  ansible.builtin.systemd:
+    name: ipset
+    state: started
+    enabled: true
+
+- name: Enable IP forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    sysctl_set: true
+    reload: true
+
+- name: Set default policies
+  ansible.builtin.iptables:
+    chain: "{{ item.chain }}"
+    policy: "{{ item.policy }}"
+    table: filter
+  loop:
+    - { chain: INPUT, policy: ACCEPT }
+    - { chain: FORWARD, policy: DROP }
+    - { chain: OUTPUT, policy: ACCEPT }
+
+- name: Allow traffic from 10.60.0.0/16 to 10.80.0.0/16
+  community.general.ufw:
+    from_ip: "10.60.0.0/16"
+    to_ip: "10.80.0.0/16"
+    proto: any
+    state: enabled
+    rule: allow
+    route: true
+
+- name: Allow traffic from 10.10.10.0/24 to 10.80.0.0/16
+  community.general.ufw:
+    from_ip: "10.10.10.0/24"
+    to_ip: "10.80.0.0/16"
+    proto: any
+    state: enabled
+    rule: allow
+    route: true
+
+- name: Allow traffic from 10.80.0.0/16 to 10.10.10.0/24
+  community.general.ufw:
+    from_ip: "10.80.0.0/16"
+    to_ip: "10.10.10.0/24"
+    proto: any
+    state: enabled
+    rule: allow
+    route: true
+
+- name: Allow traffic from 10.60.0.0/16 to 10.10.10.0/24
+  community.general.ufw:
+    from_ip: "10.60.0.0/16"
+    to_ip: "10.10.10.0/24"
+    proto: any
+    state: enabled
+    rule: allow
+    route: true
+
+- name: Allow traffic from 10.80.0.0/16 to 10.80.0.0/16
+  community.general.ufw:
+    from_ip: "10.80.0.0/16"
+    to_ip: "10.80.0.0/16"
+    proto: any
+    state: enabled
+    rule: allow
+    route: true
+
+- name: Setup NAT masquerading
+  ansible.builtin.iptables:
+    table: nat
+    chain: POSTROUTING
+    jump: MASQUERADE
+    destination: 10.80.0.0/16
+    state: present
+
+- name: Dump iptables rules
+  ansible.builtin.command:
+    cmd: iptables-save
+  register: iptables_rules
+  changed_when: false
+
+- name: Save iptables rules
+  ansible.builtin.copy:
+    content: "{{ iptables_rules.stdout }}"
+    dest: "/etc/iptables/rules.v4"
+    owner: root
+    group: root
+    mode: "0600"

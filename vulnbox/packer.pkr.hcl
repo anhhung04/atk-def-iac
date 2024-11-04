@@ -8,5 +8,9 @@ packer {
       version = ">= 2.3.0"
       source  = "github.com/vultr/vultr"
     }
+    digitalocean = {
+      version = ">= 1.0.4"
+      source  = "github.com/digitalocean/digitalocean"
+    }
   }
 }

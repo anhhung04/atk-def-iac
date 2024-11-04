@@ -1,96 +1,127 @@
-module "network" {
-  source = "../modules/network"
-
-  region = var.region
-  vpc_name = "dev-vpc"
-  vpc_cidr = "10.0.0.0/16"
+# Common configurations
+locals {
+  common_tags = ["attack-defense", "managed-by-terraform"]
+  
+  droplet_common_config = {
+    region     = var.region
+    ssh_keys   = local.ssh_key_ids
+    tags       = local.common_tags
+  }
+  
+  vpc_config = {
+    infra = {
+      name = "infra"
+      cidr = "10.10.10.0/24"
+    }
+    vulnbox = {
+      name = "vulnbox"
+      cidr = "10.80.0.0/16"
+    }
+  }
 }
 
-module "instance" {
-  source = "../modules/instance"
+# Network Configuration
+module "infra-network" {
+  source = "./modules/network"
 
-  region            = var.region
-  instance_count    = 1
-  instance_label    = "${var.environment}-instance"
-  plan              = "vc2-1c-1gb"
-  os_id             = "1743"  # Ubuntu 20.04 x64
-  vpc_id            = module.network.vpc_id
-  firewall_group_id = module.firewall.firewall_group_id
-  ssh_key_ids = [
-    data.vultr_ssh_key.exist_key.id
-  ]
+  region    = var.region
+  vpc_name  = local.vpc_config.infra.name
+  vpc_cidr  = local.vpc_config.infra.cidr
 }
 
-resource "local_file" "inventory" {
-  content = <<-EOF
-[machine]
-%{ for instance_ip in module.instance.instance_ips ~}
-${instance_ip}
-%{ endfor ~}
-EOF
+module "vulnbox-network" {
+  source = "./modules/network"
 
-  filename = "${path.module}/../ansible/inventory.cfg"
+  region    = var.region
+  vpc_name  = local.vpc_config.vulnbox.name
+  vpc_cidr  = local.vpc_config.vulnbox.cidr
 }
 
+# DNS Configuration
 module "dns" {
-  source = "../modules/dns"
+  source = "./modules/dns"
 
   domain_name = var.domain_name
-  a_records = [
-    {
-      name = "app"
-      ip   = module.instance.instance_ips[0]
-    },
-    # {
-    #   name = "api"
-    #   ip   = module.instance.instance_ips[1]
-    # }
-  ]
+  zone_id    = var.cloudflare_zone_id
 }
 
-module "firewall" {
-  source = "../modules/firewall"
-
-  firewall_group_description = "${var.environment} firewall group"
-  inbound_rules = [
-    {
-      protocol    = "tcp"
-      port_range  = "22"
-      subnet      = "0.0.0.0"
-      subnet_size = 0
-      notes       = "Allow SSH from anywhere"
-    },
-    {
-      protocol    = "tcp"
-      port_range  = "80"
-      subnet      = "0.0.0.0"
-      subnet_size = 0
-      notes       = "Allow HTTP from anywhere"
-    },
-    {
-      protocol    = "tcp"
-      port_range  = "443"
-      subnet      = "0.0.0.0"
-      subnet_size = 0
-      notes       = "Allow HTTPS from anywhere"
-    }
-  ]
-  outbound_rules = [
-    {
-      protocol    = "tcp"
-      port_range  = "1-65535"
-      subnet      = "0.0.0.0"
-      subnet_size = 0
-      notes       = "Allow all outbound TCP traffic"
-    },
-    {
-      protocol    = "udp"
-      port_range  = "1-65535"
-      subnet      = "0.0.0.0"
-      subnet_size = 0
-      notes       = "Allow all outbound UDP traffic"
-    }
-  ]
+# SSH Key Management
+data "digitalocean_ssh_key" "existing" {
+  name = "attack-defense"
 }
 
+# Game Master Instance
+resource "digitalocean_droplet" "master" {
+  name     = "game-master"
+  size     = var.game_master_droplet_size
+  image    = "ubuntu-22-04-x64"
+  
+  vpc_uuid = module.infra-network.vpc_id
+  monitoring = true
+  
+  dynamic "lifecycle_policy" {
+    for_each = var.enable_backups ? [1] : []
+    content {
+      backup_retention_days = 7
+    }
+  }
+
+  # Use common config
+  region   = local.droplet_common_config.region
+  ssh_keys = local.droplet_common_config.ssh_keys
+  tags     = concat(local.droplet_common_config.tags, ["game-master"])
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      tags,
+      image
+    ]
+  }
+}
+
+# VPN Instance
+resource "digitalocean_droplet" "vpn" {
+  name     = "vpn"
+  size     = var.vpn_droplet_size
+  image    = "ubuntu-22-04-x64"
+  
+  vpc_uuid = module.infra-network.vpc_id
+  monitoring = true
+  
+  # Use common config
+  region   = local.droplet_common_config.region
+  ssh_keys = local.droplet_common_config.ssh_keys
+  tags     = concat(local.droplet_common_config.tags, ["vpn"])
+
+  lifecycle {
+    ignore_changes = [
+      tags,
+      image
+    ]
+  }
+}
+
+# Vulnbox Instances
+resource "digitalocean_droplet" "vulnbox" {
+  count    = var.num_vulnbox
+  name     = format("vulnbox-%03d", count.index + 1)  # Better formatting for names
+  size     = var.vulnbox_droplet_size
+  image    = data.digitalocean_snapshot.vulnbox.id
+  
+  vpc_uuid = module.vulnbox-network.vpc_id
+  monitoring = true
+  
+  # Use common config
+  region   = local.droplet_common_config.region
+  ssh_keys = local.droplet_common_config.ssh_keys
+  tags     = concat(local.droplet_common_config.tags, ["vulnbox"])
+
+  lifecycle {
+    ignore_changes = [
+      tags,
+      image
+    ]
+  }
+}
 

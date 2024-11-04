@@ -1,18 +1,15 @@
-# resource "vultr_ssh_key" "my_ssh_key" {
-#   name    = "my-ssh-key"
-#   ssh_key = file("${path.module}/path/to/your/public_key.pub")
-# }
-
-data "vultr_ssh_key" "exist_key" {
-  filter {
-    name   = "name"
-    values = ["id_ed25519.pub"]
-  }
+locals {
+  ssh_key_names = ["id_ed25519.pub", "attack-defense"]  # Add all possible key names
 }
 
-# output "new_ssh_key_id" {
-#   value = vultr_ssh_key.my_ssh_key.id
-# }
+data "digitalocean_ssh_key" "keys" {
+  for_each = toset(local.ssh_key_names)
+  name     = each.value
+}
+
+locals {
+  ssh_key_ids = [for key in data.digitalocean_ssh_key.keys : key.id]
+}
 
 output "existing_ssh_key_id" {
   value = data.vultr_ssh_key.exist_key.id

@@ -1,7 +1,7 @@
 build {
 
   name    = "vulnbox"
-  sources = ["source.vultr.ubuntu"]
+  sources = ["source.digitalocean.ubuntu"]
 
   provisioner "shell" {
     script = "scripts/install_docker.sh"
@@ -15,11 +15,6 @@ build {
   provisioner "file" {
     source   = "./service-boot/game-service@.service"
     destination = "/tmp/game-service@.service"
-  }
-
-  provisioner "file" {
-    source   = "./internal"
-    destination = "/tmp"
   }
 
   provisioner "shell" {

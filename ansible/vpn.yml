@@ -1,0 +1,7 @@
+---
+- name: VPN setup
+  hosts: vpn-machine
+  become: true
+  roles:
+    - { role: common, tags: common }
+    - { role: vpn, tags: vpn }

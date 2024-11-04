@@ -1,0 +1,70 @@
+---
+- name: Add Admin Key
+  ansible.builtin.uri:
+    url: https://github.com/anhhung04.keys
+    return_content: true
+  register: admin_keys
+
+- name: Install Open vSwitch
+  ansible.builtin.apt:
+    name: openvswitch-switch
+
+- name: Replace IP
+  ansible.builtin.template:
+    src: "./10-ctf.yaml.j2"
+    dest: "/etc/netplan/10-ctf.yaml"
+    owner: root
+    mode: "0600"
+  vars:
+    tip: "{{ inventory_hostname.split('-')[1] | lower }}"
+    fip: "1"
+
+- name: Remove cloud-init
+  ansible.builtin.file:
+    path: "/etc/netplan/50-cloud-init.yaml"
+    state: absent
+
+- name: Apply new IP
+  ansible.builtin.command:
+    cmd: netplan apply
+  changed_when: false
+
+- name: Remove kernel link
+  ansible.builtin.command:
+    cmd: "ip route del 10.80.0.0/16 dev {{ game_interface }} proto kernel"
+
+- name: Upload SSH config
+  ansible.builtin.copy:
+    src: "./10-ctf_ssh.conf"
+    dest: "/etc/ssh/sshd_config.d/10-ctf_ssh.conf"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Upload SSH Public Key
+  ansible.builtin.copy:
+    src: "./ssh_keys/team{{ inventory_hostname.split('-')[1] | lower }}_id_ed25519.pub"
+    dest: "/etc/ssh/authorized_keys"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Ensure Admin Key is Present
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/authorized_keys
+    line: "{{ admin_keys.content }}"
+    mode: "0644"
+    create: true
+    state: present
+
+- name: Restart SSH
+  ansible.builtin.service:
+    name: ssh
+    state: restarted
+
+- name: Change Ubuntu password
+  ansible.builtin.user:
+    name: ubuntu
+    password: "{{ lookup('file', './passwords/team' + inventory_hostname.split('-')[1] + '.txt') | password_hash('sha512') }}"
+    update_password: always
+  ignore_errors: false

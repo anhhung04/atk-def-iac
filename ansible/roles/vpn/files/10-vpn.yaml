@@ -1,0 +1,14 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp8s0:
+      addresses:
+        - 10.10.10.1/24
+    enp9s0:
+      addresses:
+        - 10.80.0.1/16
+    enp1s0:
+      dhcp4: true
+      nameservers:
+        addresses: [1.1.1.1, 1.0.0.1]

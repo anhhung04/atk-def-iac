@@ -1,5 +1,7 @@
-provider "vultr" {
-  api_key = var.vultr_api_key
-  rate_limit = 700
-  retry_limit = 3
+provider "digitalocean" {
+  token = var.do_token
+}
+
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }

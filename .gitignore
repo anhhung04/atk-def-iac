@@ -16,3 +16,11 @@ crash.log
 *.box
 
 .venv/
+out/
+*.pub
+id_*
+tokens.txt
+ssh_keys/
+passwords
+*.log
+__pycache__/
