@@ -1,4 +1,11 @@
-version: '3.8'
+version: "3.8"
+
+x-db-env: &db-env
+  MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-secretPassw0rd}
+  MYSQL_DATABASE: ${MYSQL_DATABASE:-labs}
+  MYSQL_USER: ${MYSQL_USER:-goldTrigger}
+  MYSQL_PASSWORD: ${MYSQL_PASSWORD:-goldDigger}
+
 services:
   labs:
     depends_on:
@@ -7,7 +14,9 @@ services:
       - "db:database"
     restart: unless-stopped
     build: ./src
-    env_file: .env
+    environment:
+      PORT: 9993
+      <<: *db-env
     ports:
       - 9993:9993
     pids_limit: 256
@@ -17,7 +26,8 @@ services:
   db:
     image: mysql:latest
     restart: unless-stopped
-    env_file: .env
+    environment:
+      <<: *db-env
     volumes:
       - data:/var/lib/mysql
     pids_limit: 256
