@@ -4,9 +4,9 @@
 #include <unistd.h>
 #include "./lib/sqlite3.h"
 
-#define MAX_SSN_LENGTH 50
-#define MAX_CONTENT_LENGTH 200
-#define MAX_SQL_LENGTH 400
+#define MAX_SSN_LENGTH 0x100
+#define MAX_CONTENT_LENGTH 0x500
+#define MAX_SQL_LENGTH 0x400
 
 #define DB_PATH "/tmp/main.db"
 
