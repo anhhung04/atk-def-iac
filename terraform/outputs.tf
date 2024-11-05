@@ -1,16 +1,26 @@
 output "vpc_id" {
   description = "ID of the created VPC"
-  value       = module.network.vpc_id
+  value       = module.game-network.vpc_id
 }
 
 output "instance_ids" {
   description = "IDs of the created instances"
-  value       = module.instance.instance_ids
+  value       = concat([
+    for instance in vultr_instance.vulnbox : instance.id
+  ],[
+    vultr_instance.vulnbox-bot.id,
+    vultr_instance.game-master.id
+  ])
 }
 
 output "instance_ips" {
   description = "Public IPs of the created instances"
-  value       = module.instance.instance_ips
+  value       = concat([
+    for instance in vultr_instance.vulnbox : instance.main_ip
+  ] , [
+    vultr_instance.vulnbox-bot.main_ip,
+    vultr_instance.game-master.main_ip
+  ])
 }
 
 output "domain_id" {

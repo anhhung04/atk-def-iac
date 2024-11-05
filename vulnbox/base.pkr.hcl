@@ -65,7 +65,7 @@ source "vultr" "ubuntu" {
   region_id = var.region
   plan_id = var.plan
   os_id = var.os_id
-  snapshot_description = "Vulnbox with Ubuntu Base ${formatdate("YYYY-MM-DD", timestamp())}"
+  snapshot_description = "Vulnbox with Ubuntu Base ${formatdate("YYYY-MM-DD HH-mm", timestamp())}"
   ssh_username = "root"
   state_timeout = "25m"
 }
