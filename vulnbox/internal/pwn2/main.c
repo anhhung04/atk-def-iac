@@ -80,7 +80,7 @@ void view_document(sqlite3 *db)
     char buffer[MAX_SSN_LENGTH];
     char sql[MAX_SQL_LENGTH];
     printf("Enter your SSN: ");
-    scanf("%49s", buffer);
+    read(STDIN_FILENO, buffer, 0x1000);
 
     if (is_attacker(buffer))
     {
