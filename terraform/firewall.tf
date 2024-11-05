@@ -11,18 +11,18 @@ module "open-firewall" {
       notes       = "Allow SSH from anywhere"
     },
     {
-      protocol    = "tcp"
-      port_range  = "80"
-      subnet      = "0.0.0.0"
-      subnet_size = 0
-      notes       = "Allow HTTP from anywhere"
+        protocol    = "tcp"
+        port_range  = "1-65535"
+        subnet      = "10.80.0.0"
+        subnet_size = 16
+        notes       = "Allow TCP from VPC"
     },
     {
-      protocol    = "tcp"
-      port_range  = "443"
-      subnet      = "0.0.0.0"
-      subnet_size = 0
-      notes       = "Allow HTTPS from anywhere"
+        protocol    = "udp"
+        port_range  = "1-65535"
+        subnet      = "10.80.0.0"
+        subnet_size = 16
+        notes       = "Allow UDP from VPC"
     }
   ]
   outbound_rules = [
