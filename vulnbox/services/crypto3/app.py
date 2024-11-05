@@ -152,12 +152,15 @@ def read_data():
     data = cursor.execute(
         "SELECT username, note FROM user_note WHERE note_id = ?", (note_id,)
     ).fetchone()
-    if data[0] == username:
+
+    if not data:
+        return "Note not found"
+    elif data[0] == username:
         to_return = data[1]
     else:
         to_return = "Insufficient permissions"
     privkey = cursor.execute(
-        "SELECT privkey FROM users WHERE username = ?", (username,)
+        "SELECT privkey FROM users WHERE username = ?", (data[0],)
     ).fetchone()
     privkey = int(privkey[0])
     pubkey = get_pubkey(privkey)
@@ -190,7 +193,7 @@ def register():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-        privkey, pubkey = generateKeyPair()
+        privkey, pubkey = generate_key_pair()
         pubkey = f"{pubkey[0]}, {pubkey[1]}"
         conn = sqlite3.connect("users.db")
         cursor = conn.cursor()
