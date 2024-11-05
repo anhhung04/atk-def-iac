@@ -16,7 +16,7 @@ def init_db():
     cursor.execute("DROP TABLE IF EXISTS users")
     cursor.execute("DROP TABLE IF EXISTS user_log")
     cursor.execute("DROP TABLE IF EXISTS user_note")
-    
+
     cursor.execute(
         """
             CREATE TABLE users (
@@ -130,8 +130,8 @@ def store_data():
         conn.commit()
 
     except Exception as e:
-        conn.rollback()  
-        print(f"Error: {e}", file=sys.stderr)  
+        conn.rollback()
+        print(f"Error: {e}", file=sys.stderr)
         return "An error occurred while storing data", 500
 
     finally:
@@ -166,7 +166,7 @@ def read_data():
         "INSERT INTO user_log (username, pubkey, note_id, log_id, action) VALUES (?, ?, ?, ?, ?)",
         (username, str(pubkey), note_id, str(log_id), "0"),
     )
-
+    conn.commit()
     conn.close()
 
     return to_return
