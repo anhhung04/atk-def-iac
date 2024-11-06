@@ -14,7 +14,7 @@ variable "domain_name" {
   type        = string
 }
 
-variable "environment" {
-  description = "The environment (dev or prod)"
-  type        = string
+variable "num_vulnbox" {
+  description = "The number of vulnbox instances to deploy"
+  type        = number
 }

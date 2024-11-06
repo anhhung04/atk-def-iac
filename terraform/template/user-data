@@ -1,0 +1,21 @@
+#cloud-config
+timezone: Asia/Ho_Chi_Minh
+package_update: true
+package_upgrade: true
+packages:
+  - sudo
+users:
+  - name: ubuntu
+    groups: [adm, sudo]
+    lock_passwd: false
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+
+ssh_pwauth: true
+
+ssh:
+  install-server: true
+  permit_root_login: true
+
+runcmd:
+  - [/bin/bash, -c, "echo -n 'ubuntu:${password}' | chpasswd"]

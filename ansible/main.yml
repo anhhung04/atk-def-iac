@@ -1,5 +1,0 @@
----
-- name: Main setup
-  hosts: machine
-  roles:
-      - common
