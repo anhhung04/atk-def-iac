@@ -6,6 +6,10 @@ module "dns" {
     {
       name = "game"
       ip   = vultr_instance.master.main_ip
+    },
+    {
+      name = "vpn"
+      ip   = vultr_instance.vpn.main_ip
     }
   ]
 }

@@ -1,0 +1,57 @@
+---
+- name: Upload folder ForcAD
+  ansible.builtin.copy:
+    src: "./ForcAD"
+    dest: "/root"
+    owner: root
+    group: root
+    mode: "0744"
+
+- name: Install require python packages
+  ansible.builtin.pip:
+    name:
+      - requests
+      - PyYAML
+      - click
+      - pydantic
+
+- name: Upload install Docker script
+  ansible.builtin.copy:
+    src: "./install_docker.sh"
+    dest: "/root/ForcAD/install_docker.sh"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install Docker
+  ansible.builtin.command:
+    cmd: "/root/ForcAD/install_docker.sh"
+    creates: "/root/ForcAD/docker_marker"
+
+- name: Link control
+  ansible.builtin.file:
+    src: "/root/ForcAD/control.sh"
+    dest: "/usr/local/bin/control"
+    owner: root
+    group: root
+    mode: "0755"
+    state: link
+
+- name: Build ForcAD
+  ansible.builtin.command:
+    cmd: "control build"
+    creates: "/root/ForcAD/build_marker"
+
+- name: Setup ForcAD
+  ansible.builtin.command:
+    cmd: "control setup"
+    creates: "/root/ForcAD/setup_marker"
+
+- name: Add routing via 10.10.10.10 for dest 10.80.0.0/16
+  ansible.builtin.command:
+    cmd: "ip route add 10.80.0.0/16 via 10.10.10.10 proto static"
+  register: route_result
+  failed_when:
+    - route_result.rc != 0
+    - "'File exist' not in route_result.stderr"
+  changed_when: route_result.rc == 0

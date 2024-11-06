@@ -38,20 +38,32 @@ resource "vultr_instance" "vpn" {
   ssh_key_ids = [data.vultr_ssh_key.exist_key.id]
   os_id = 1743
 
-  connection {
-    type = "ssh"
-    host = self.main_ip
-    user = "root"
-    password = self.default_password
-  }
+  user_data = <<-EOF
+#cloud-config
+package_update: true
+package_upgrade: true
+packages:
+  - sudo
+  - wireguard
+  - resolvconf
+  - iptables-persistent
+  - unbound
+  - unbound-host
+  - unbound-anchor
+  - openvswitch-switch
 
-  provisioner "remote-exec" {
-    inline = [
-      "echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf",
-      "echo 'net.ipv4.conf.all.accept_redirects=0' >> /etc/sysctl.conf",
-      "sysctl -p"
-    ]
-  }
+runcmd:
+  - echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+  - echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf
+  - echo "net.ipv4.conf.all.rp_filter=2" >> /etc/sysctl.conf
+  - echo "net.ipv4.conf.default.rp_filter=2" >> /etc/sysctl.conf
+  - echo "net.ipv4.conf.all.accept_redirects=1" >> /etc/sysctl.conf
+  - echo "net.ipv4.conf.default.accept_redirects=1" >> /etc/sysctl.conf
+  - sysctl -p
+  - sed -E -i 's/10\.80\.[0-9]+\.[0-9]+/10.80.0.5/' /etc/netplan/50-cloud-init.yaml
+  - sed -E -i 's/10\.10\.[0-9]+\.[0-9]+/10.10.10.10/' /etc/netplan/50-cloud-init.yaml
+  - netplan apply
+EOF
 }
 
 resource "vultr_instance" "vulnbox" {
@@ -67,6 +79,7 @@ resource "vultr_instance" "vulnbox" {
   snapshot_id       = data.vultr_snapshot.vulnbox.id
   user_data = templatefile("./template/user-data", { 
     password = "@dm1n@101"
+    id = count.index + 1
   })
 }
 
@@ -82,14 +95,16 @@ resource "vultr_instance" "vulnbox-bot" {
   snapshot_id = data.vultr_snapshot.vulnbox.id
   user_data = templatefile("./template/user-data", { 
     password = "@dm1n@101"
+    id = 0
   })
 }
 
 resource "local_file" "inventory" {
   filename = "../ansible/inventory.cfg"
-  content = templatefile("./template/inventory", {
+  content = templatefile("./template/inventory.cfg", {
     master_ip = vultr_instance.master.main_ip,
     vpn_ip = vultr_instance.vpn.main_ip
+    ssh_user = "root"
   })
 }
 

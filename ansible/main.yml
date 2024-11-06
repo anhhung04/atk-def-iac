@@ -1,5 +1,7 @@
 ---
 - name: Main setup
-  hosts: machine
+  hosts: master
+  become: true
   roles:
-      - common
+    - common
+    - master

@@ -1,0 +1,7 @@
+---
+- name: VPN setup
+  hosts: vpn
+  become: true
+  roles:
+    - common
+    - vpn
