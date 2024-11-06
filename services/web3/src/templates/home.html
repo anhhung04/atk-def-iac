@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Your Notes</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-800">
+    <div class="container mx-auto p-4">
+        <h1 class="text-4xl font-bold text-center mb-8">Welcome to NoteShare</h1>
+        <p class="text-center mb-8">Share notes with friends or retrieve shared ones!</p>
+
+        <div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold mb-4">Share a Note</h2>
+            <form id="share-form" class="space-y-4">
+                <div>
+                    <label for="share-title" class="block text-sm font-medium text-gray-700">Title</label>
+                    <input type="text" id="share-title" name="title" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                </div>
+                <div>
+                    <label for="share-content" class="block text-sm font-medium text-gray-700">Content</label>
+                    <textarea id="share-content" name="content" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required></textarea>
+                </div>
+                <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded-md">Share</button>
+            </form>
+        </div>
+
+        <div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-md mt-8">
+            <h2 class="text-2xl font-semibold mb-4">Retrieve a Note</h2>
+            <form id="retrieve-form" class="space-y-4">
+                <div>
+                    <label for="retrieve-title" class="block text-sm font-medium text-gray-700">Title</label>
+                    <input type="text" id="retrieve-title" name="title" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                </div>
+                <button type="submit" class="w-full bg-green-500 text-white py-2 rounded-md">Retrieve</button>
+            </form>
+            <div id="note-content" class="mt-4 hidden">
+                <h3 class="text-xl font-semibold">Note Content:</h3>
+                <div id="note-content-text" class="mt-2 p-2 bg-gray-100 rounded-md"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('share-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const title = document.getElementById('share-title').value;
+            const content = document.getElementById('share-content').value;
+
+            const response = await fetch('/share', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title, content })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                alert('Note shared successfully!');
+            } else {
+                alert('Error sharing note: ' + result.error);
+            }
+        });
+
+        document.getElementById('retrieve-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const title = document.getElementById('retrieve-title').value;
+
+            const response = await fetch('/retrieve', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                const content = result.content.map(note => `<p>${note.value}</p>`).join('');
+                document.getElementById('note-content-text').innerHTML = content;
+                document.getElementById('note-content').classList.remove('hidden');
+            } else {
+                alert('Note not found or error retrieving note: ' + result.error);
+            }
+        });
+    </script>
+</body>
+</html>

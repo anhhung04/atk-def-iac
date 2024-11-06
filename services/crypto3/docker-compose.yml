@@ -1,0 +1,11 @@
+services:
+  crypto1:
+    restart: unless-stopped
+    build: .
+    pids_limit: 256
+    mem_limit: 64M
+    cpus: 0.5
+    ports:
+      - "10000:10000"
+    environment:
+      - FLASK_ENV=development

@@ -28,6 +28,15 @@
     cmd: "/root/ForcAD/install_docker.sh"
     creates: "/root/ForcAD/docker_marker"
 
+- name: Add routing via 10.10.10.10 for dest 10.80.0.0/16
+  ansible.builtin.command:
+    cmd: "ip route add 10.80.0.0/16 via 10.10.10.10 proto static"
+  register: route_result
+  failed_when:
+    - route_result.rc != 0
+    - "'File exist' not in route_result.stderr"
+  changed_when: route_result.rc == 0
+
 - name: Link control
   ansible.builtin.file:
     src: "/root/ForcAD/control.sh"
@@ -37,21 +46,12 @@
     mode: "0755"
     state: link
 
-- name: Build ForcAD
-  ansible.builtin.command:
-    cmd: "control build"
-    creates: "/root/ForcAD/build_marker"
-
 - name: Setup ForcAD
   ansible.builtin.command:
     cmd: "control setup"
     creates: "/root/ForcAD/setup_marker"
 
-- name: Add routing via 10.10.10.10 for dest 10.80.0.0/16
+- name: Build ForcAD
   ansible.builtin.command:
-    cmd: "ip route add 10.80.0.0/16 via 10.10.10.10 proto static"
-  register: route_result
-  failed_when:
-    - route_result.rc != 0
-    - "'File exist' not in route_result.stderr"
-  changed_when: route_result.rc == 0
+    cmd: "control build"
+    creates: "/root/ForcAD/build_marker"
