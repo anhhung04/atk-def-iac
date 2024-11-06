@@ -1,6 +1,11 @@
-output "vpc_id" {
-  description = "ID of the created VPC"
-  value       = module.game-network.vpc_id
+output "game_vpc_id" {
+  description = "ID of the created game VPC"
+  value       = module.vulnbox-network.vpc_id
+}
+
+output "infra_vpc_id" {
+  description = "ID of the created vpc VPC"
+  value       = module.infra-network.vpc_id
 }
 
 output "instance_ids" {

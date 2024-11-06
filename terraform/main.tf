@@ -32,7 +32,7 @@ resource "vultr_instance" "vulnbox" {
   region            = var.region
   plan              = var.vulnbox_plan
   label             = "vulnbox-${count.index + 1}"
-  vpc_ids           = [module.game-network.vpc_id]
+  vpc_ids           = [module.vulnbox-network.vpc_id]
   backups           = "disabled"
   hostname          = "team-${count.index + 1}"
   tags              = ["vulnbox", "attack-defense"]
@@ -48,7 +48,7 @@ resource "vultr_instance" "vulnbox-bot" {
   region            = var.region
   plan              = var.vulnbox_bot_plan
   label             = "vulnbox-bot"
-  vpc_ids           = [ module.game-network.vpc_id ]
+  vpc_ids           = [ module.vulnbox-network.vpc_id ]
   backups = "disabled"
   hostname = "team-bot"
   tags = ["vulnbox", "attack-defense"]
