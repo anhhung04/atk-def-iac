@@ -10,60 +10,11 @@ game:
   inflation: true
 
 tasks:
-  - checker: pwn1/checker.py
+  - checker: example/checker.py
     checker_timeout: 5
     checker_type: gevent_pfr
     gets: 1
-    name: pwn1
-    places: 1
-    puts: 1
-  - checker: web3/checker.py
-    checker_timeout: 5
-    checker_type: gevent_pfr
-    gets: 1
-    name: web3
-    places: 1
-    puts: 1
-  - checker: crypto3/checker.py
-    checker_timeout: 5
-    checker_type: gevent_pfr
-    gets: 1
-    name: crypto3
-    places: 1
-    puts: 1
-  - checker: pwn2/checker.py
-    checker_timeout: 5
-    checker_type: gevent_pfr
-    gets: 1
-    name: pwn2
-    places: 1
-    puts: 1
-  - checker: crypto1/checker.py
-    checker_timeout: 15
-    checker_type: gevent_pfr
-    gets: 1
-    name: crypto1
-    places: 1
-    puts: 1
-  - checker: web2/checker.py
-    checker_timeout: 5
-    checker_type: gevent_pfr
-    gets: 1
-    name: web2
-    places: 2
-    puts: 1
-  - checker: web1/checker.py
-    checker_timeout: 20
-    checker_type: gevent_pfr
-    gets: 1
-    name: web1
-    places: 3
-    puts: 1
-  - checker: crypto2/checker.py
-    checker_timeout: 20
-    checker_type: gevent_pfr
-    gets: 1
-    name: crypto2
+    name: example
     places: 1
     puts: 1
 
