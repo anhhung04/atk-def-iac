@@ -1,0 +1,21 @@
+---
+- name: Replace IP
+  ansible.builtin.shell:
+    cmd: sed -i 's/10\.80\.[0-9]\+\.[0-9]\+/10.80.{{ inventory_hostname.split("-")[1] }}.2/g' /etc/netplan/50-cloud-init.yaml
+
+- name: Apply new IP
+  ansible.builtin.command:
+    cmd: netplan apply
+    creates: /etc/netplan/something.yml
+
+- name: Change Ubuntu password
+  ansible.builtin.shell:
+    cmd: echo -n "ubuntu:R00tP@ss" | chpasswd
+
+- name: Upload SSH Public Key
+  ansible.builtin.copy:
+    src: "./team{{ inventory_hostname.split('-')[1] | lower }}_id_ed25519.pub"
+    dest: "/home/ubuntu/.ssh/authorized_keys"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
