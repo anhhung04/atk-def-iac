@@ -85,3 +85,11 @@ resource "vultr_instance" "vulnbox-bot" {
   })
 }
 
+resource "local_file" "inventory" {
+  filename = "../ansible/inventory.cfg"
+  content = templatefile("./template/inventory", {
+    master_ip = vultr_instance.master.main_ip,
+    vpn_ip = vultr_instance.vpn.main_ip
+  })
+}
+
