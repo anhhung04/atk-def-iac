@@ -77,10 +77,6 @@ resource "vultr_instance" "vulnbox" {
   tags              = ["vulnbox", "attack-defense"]
   ssh_key_ids       = [data.vultr_ssh_key.exist_key.id]
   snapshot_id       = data.vultr_snapshot.vulnbox.id
-  user_data = templatefile("./template/user-data", { 
-    password = "@dm1n@101"
-    id = count.index + 1
-  })
 }
 
 resource "vultr_instance" "vulnbox-bot" {
@@ -93,10 +89,6 @@ resource "vultr_instance" "vulnbox-bot" {
   tags = ["vulnbox", "attack-defense"]
   ssh_key_ids = [data.vultr_ssh_key.exist_key.id]
   snapshot_id = data.vultr_snapshot.vulnbox.id
-  user_data = templatefile("./template/user-data", { 
-    password = "@dm1n@101"
-    id = 0
-  })
 }
 
 resource "local_file" "inventory" {
@@ -105,6 +97,8 @@ resource "local_file" "inventory" {
     master_ip = vultr_instance.master.main_ip,
     vpn_ip = vultr_instance.vpn.main_ip
     ssh_user = "root"
+    vulnbox_ips = [for instance in vultr_instance.vulnbox : instance.main_ip]
+    vulnbox_bot_ip = vultr_instance.vulnbox-bot.main_ip
   })
 }
 

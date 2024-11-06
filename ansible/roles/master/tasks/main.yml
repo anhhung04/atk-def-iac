@@ -45,13 +45,3 @@
     group: root
     mode: "0755"
     state: link
-
-- name: Setup ForcAD
-  ansible.builtin.command:
-    cmd: "control setup"
-    creates: "/root/ForcAD/setup_marker"
-
-- name: Build ForcAD
-  ansible.builtin.command:
-    cmd: "control build"
-    creates: "/root/ForcAD/build_marker"

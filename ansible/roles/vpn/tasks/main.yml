@@ -4,9 +4,7 @@
     name:
       - iptables
       - iptables-persistent
-      - netfilter-persistent
     state: present
-    update_cache: true
 
 - name: Stop Wireguard server
   ansible.builtin.systemd:
@@ -84,52 +82,13 @@
   ansible.builtin.iptables:
     table: nat
     chain: POSTROUTING
-    destination: 10.80.0.0/16
     jump: MASQUERADE
     state: present
 
-- name: Save IPv4 rules
-  ansible.builtin.command:
-    cmd: netfilter-persistent save
-  changed_when: true
-
-- name: Ensure netfilter-persistent service is enabled and started
-  ansible.builtin.service:
-    name: netfilter-persistent
-    state: started
-    enabled: true
-
-- name: Verify rules are loaded
-  ansible.builtin.command: iptables -L -v -n
-  register: iptables_verify
-  changed_when: false
-
-- name: Display current iptables rules
-  ansible.builtin.debug:
-    var: iptables_verify.stdout_lines
-
-- name: Check IP forwarding status
-  ansible.builtin.command: sysctl net.ipv4.ip_forward
-  register: ip_forward_status
-  changed_when: false
-
-- name: Display IP forwarding status
-  ansible.builtin.debug:
-    var: ip_forward_status.stdout_lines
-
-- name: Check NAT rules
-  ansible.builtin.command: iptables -t nat -L -v -n
-  register: nat_rules
-  changed_when: false
-
-- name: Display NAT rules
-  ansible.builtin.debug:
-    var: nat_rules.stdout_lines
-
-- name: Check netfilter-persistent service status
-  ansible.builtin.service_facts:
-  register: service_state
-
-- name: Display netfilter-persistent service status
-  ansible.builtin.debug:
-    var: service_state.ansible_facts.services['netfilter-persistent.service'].state
+- name: Change ips # noqa: command-instead-of-module, no-changed-when
+  ansible.builtin.shell:
+    cmd: |
+      sed -E -i 's/10\.80\.[0-9]+\.[0-9]+/10.80.0.5/' /etc/netplan/50-cloud-init.yaml
+      sed -E -i 's/10\.10\.[0-9]+\.[0-9]+/10.10.10.10/' /etc/netplan/50-cloud-init.yaml
+      netplan apply
+    executable: /bin/bash
