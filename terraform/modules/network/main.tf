@@ -5,9 +5,9 @@ locals {
   vpc_subnet_mask = local.vpc_cidr_split[1]
 }
 
-resource "vultr_vpc" "main" {
+resource "vultr_vpc2" "main" {
   region     = var.region
   description = var.vpc_name
-  v4_subnet   = local.vpc_subnet
-  v4_subnet_mask = local.vpc_subnet_mask
+  ip_block    = local.vpc_subnet
+  prefix_length = tonumber(local.vpc_subnet_mask)
 }

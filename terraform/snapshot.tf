@@ -1,7 +1,7 @@
 data "vultr_snapshot" "vulnbox" {
     filter {
         name   = "description"
-        values = ["Vulnbox with Ubuntu Base 2024-11-05 11-22"]
+        values = [var.snap_shot_description]
     }
 }
 
