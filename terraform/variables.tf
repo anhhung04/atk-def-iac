@@ -38,3 +38,8 @@ variable "vulnbox_bot_plan" {
   description = "The plan to use for the vulnbox bot"
   type        = string
 }
+
+variable "game_vpn_plan" {
+  description = "The plan to use for the game vpn"
+  type        = string
+}

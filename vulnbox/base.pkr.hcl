@@ -68,4 +68,5 @@ source "vultr" "ubuntu" {
   snapshot_description = "Vulnbox with Ubuntu Base ${formatdate("YYYY-MM-DD HH-mm", timestamp())}"
   ssh_username = "root"
   state_timeout = "25m"
+  enable_private_network = true
 }

@@ -5,7 +5,7 @@ module "dns" {
   a_records = [
     {
       name = "game"
-      ip   = vultr_instance.game-master.main_ip
+      ip   = vultr_instance.master.main_ip
     }
   ]
 }
