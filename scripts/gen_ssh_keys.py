@@ -16,12 +16,6 @@ teams = sorted(os.listdir("../ansible/roles/vpn/files/out"))
 
 teams.pop(0)
 
-gen_ssh_keys(f"./ssh_keys/team0")
-shutil.copy(
-    f"./ssh_keys/team0/id_ed25519.pub",
-    f"../ansible/roles/vulnbox/files/team0_id_ed25519.pub",
-)
-
 for team in teams:
     os.makedirs(f"./ssh_keys/{team}", exist_ok=True)
     gen_ssh_keys(f"./ssh_keys/{team}")

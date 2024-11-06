@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 log = logging.getLogger("network-config-generator")
 
 OUT_DIR = "./out"
-TEAMS = 3
+TEAMS = 4
 PER_TEAM = 6
 VPN_DOMAIN = "vpn.hah4.tech"
 SUBNET = "10.{0}.{1}.{2}"
@@ -81,7 +81,7 @@ peers = []
 
 for team in range(1, 1 + TEAMS):
     create_dir("{0}/team{1}".format(OUT_DIR, team))
-    for user in range(1, PER_TEAM):
+    for user in range(1, 1 + PER_TEAM):
         USER_KEYS = generate_keys()
         write(
             "{0}/team{1}/member{2}.conf".format(OUT_DIR, team, user),

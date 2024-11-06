@@ -17,3 +17,6 @@ crash.log
 
 .venv/
 out/
+*.pub
+id_*
+tokens.txt
