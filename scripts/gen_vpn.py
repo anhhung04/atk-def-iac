@@ -6,10 +6,10 @@ import logging, sys
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 log = logging.getLogger("network-config-generator")
 
-OUT_DIR = "./out"
-TEAMS = 4
-PER_TEAM = 6
-VPN_DOMAIN = "vpn.hah4.tech"
+OUT_DIR = "../ansible/roles/vpn/files/out"
+TEAMS = int(sys.argv[1])
+PER_TEAM = int(sys.argv[2])
+VPN_DOMAIN = sys.argv[3]
 SUBNET = "10.{0}.{1}.{2}"
 
 SERVER_CFG = """[Interface]

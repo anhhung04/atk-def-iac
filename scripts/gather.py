@@ -16,9 +16,10 @@ for team in teams:
     tar = tarfile.open(f"./out/{team}.tar.gz", "w:gz")
     tar.add(f"../ansible/roles/vpn/files/out/{team}", arcname="vpn")
     info = tarfile.TarInfo("vulnbox.txt")
+    password = open(f"../ansible/roles/vulnbox/files/passwords/{team}.txt", "r").read()
     content = f"""IP: 10.80.{team[-1]}.2
 User: ubuntu
-Password: R00tP@ss
+Password: {password}
 Team token: {tokens[int(team[-1]) - 1]}""".encode()
     info.size = len(content)
     info.mode = 0o644
