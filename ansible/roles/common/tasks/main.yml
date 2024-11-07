@@ -1,29 +1,56 @@
 - name: Set timezone to Asia/Ho_Chi_Minh
   ansible.builtin.file:
-      src: /usr/share/zoneinfo/Asia/Ho_Chi_Minh
-      dest: /etc/localtime
-      state: link
-      force: true
+    src: /usr/share/zoneinfo/Asia/Ho_Chi_Minh
+    dest: /etc/localtime
+    state: link
+    force: true
   notify: Update timezone
 
 - name: Install basic packages
   ansible.builtin.apt:
-      name:
-          - python3-pip
-          - htop
-          - tmux
-          - git
-          - curl
-          - locales
-      update_cache: false
+    name:
+      - python3-pip
+      - htop
+      - tmux
+      - git
+      - curl
+      - locales
+    update_cache: true
 
 - name: Generate locales
   community.general.locale_gen:
-      name: en_US.UTF-8
-      state: present
+    name: en_US.UTF-8
+    state: present
 
 - name: Place .bashrc to root
   ansible.builtin.copy:
-      src: .bashrc
-      dest: /root/.bashrc
-      mode: "0644"
+    src: .bashrc
+    dest: /root/.bashrc
+    mode: "0644"
+
+- name: Upload SSH config
+  ansible.builtin.copy:
+    src: "./10-ctf_ssh.conf"
+    dest: "/etc/ssh/sshd_config.d/10-ctf_ssh.conf"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Remove cloud-init network
+  ansible.builtin.file:
+    path: "/etc/netplan/50-cloud-init.yaml"
+    state: absent
+
+- name: Add Admin Key
+  ansible.builtin.uri:
+    url: https://github.com/anhhung04.keys
+    return_content: true
+  register: admin_keys
+
+- name: Ensure Admin Key is Present
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/authorized_keys
+    line: "{{ admin_keys.content }}"
+    mode: "0644"
+    create: true
+    state: present

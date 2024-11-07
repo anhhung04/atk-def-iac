@@ -5,3 +5,10 @@ network:
     enp8s0:
       addresses:
         - 10.80.{{ tip }}.{{ fip }}/16
+      routes:
+        - to: 10.80.0.0/16
+          via: 10.80.0.1
+      nameservers:
+        addresses:
+          - 8.8.8.8
+          - 8.8.4.4

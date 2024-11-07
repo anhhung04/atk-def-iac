@@ -13,6 +13,11 @@
     tip: "{{ inventory_hostname.split('-')[1] | lower }}"
     fip: "2"
 
+- name: Remove cloud-init network
+  ansible.builtin.file:
+    path: "/etc/netplan/50-cloud-init.yaml"
+    state: absent
+
 - name: Apply new IP
   ansible.builtin.command:
     cmd: netplan apply

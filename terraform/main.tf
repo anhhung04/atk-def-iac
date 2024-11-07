@@ -60,7 +60,6 @@ runcmd:
   - echo "net.ipv4.conf.all.accept_redirects=1" >> /etc/sysctl.conf
   - echo "net.ipv4.conf.default.accept_redirects=1" >> /etc/sysctl.conf
   - sysctl -p
-  - netplan apply
 EOF
 }
 
@@ -77,18 +76,6 @@ resource "vultr_instance" "vulnbox" {
   snapshot_id       = data.vultr_snapshot.vulnbox.id
 }
 
-resource "vultr_instance" "vulnbox-bot" {
-  region            = var.region
-  plan              = var.vulnbox_bot_plan
-  label             = "vulnbox-bot"
-  vpc_ids           = [ module.vulnbox-network.vpc_id ]
-  backups = "disabled"
-  hostname = "team-bot"
-  tags = ["vulnbox", "attack-defense"]
-  ssh_key_ids = [data.vultr_ssh_key.exist_key.id]
-  snapshot_id = data.vultr_snapshot.vulnbox.id
-}
-
 resource "local_file" "inventory" {
   filename = "../ansible/inventory.cfg"
   content = templatefile("./template/inventory.cfg", {
@@ -96,7 +83,6 @@ resource "local_file" "inventory" {
     vpn_ip = vultr_instance.vpn.main_ip
     ssh_user = "root"
     vulnbox_ips = [for instance in vultr_instance.vulnbox : instance.main_ip]
-    vulnbox_bot_ip = vultr_instance.vulnbox-bot.main_ip
   })
 }
 

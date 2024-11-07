@@ -4,4 +4,4 @@ network:
   ethernets:
     enp9s0:
       addresses:
-        - 10.10.10.10/24
+        - 10.10.10.1/24

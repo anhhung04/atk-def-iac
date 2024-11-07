@@ -4,4 +4,4 @@ network:
   ethernets:
     enp8s0:
       addresses:
-        - 10.80.0.5/16
+        - 10.80.0.1/16

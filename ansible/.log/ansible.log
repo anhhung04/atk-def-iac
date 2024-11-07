@@ -1,0 +1,11 @@
+2024-11-07 13:31:19,365 p=30635 u=hah4 n=ansible | [WARNING]: Invalid characters were found in group names but not replaced, use -vvvv to see details
+
+2024-11-07 13:31:19,418 p=30635 u=hah4 n=ansible | PLAY [VPN setup] ******************************************************************************************************************************************************
+2024-11-07 13:31:19,423 p=30635 u=hah4 n=ansible | TASK [Gathering Facts] ************************************************************************************************************************************************
+2024-11-07 13:31:24,328 p=30635 u=hah4 n=ansible | [WARNING]: Platform linux on host vpn is using the discovered Python interpreter at /usr/bin/python3.10, but future installation of another Python interpreter could
+change the meaning of that path. See https://docs.ansible.com/ansible-core/2.17/reference_appendices/interpreter_discovery.html for more information.
+
+2024-11-07 13:31:24,328 p=30635 u=hah4 n=ansible | ok: [vpn]
+2024-11-07 13:31:24,335 p=30635 u=hah4 n=ansible | TASK [common : Set timezone to Asia/Ho_Chi_Minh] **********************************************************************************************************************
+2024-11-07 13:31:25,038 p=30635 u=hah4 n=ansible | ok: [vpn]
+2024-11-07 13:31:25,041 p=30635 u=hah4 n=ansible | TASK [common : Install basic packages] ********************************************************************************************************************************

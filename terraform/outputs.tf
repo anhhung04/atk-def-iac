@@ -13,7 +13,7 @@ output "instance_ids" {
   value       = concat([
     for instance in vultr_instance.vulnbox : instance.id
   ],[
-    vultr_instance.vulnbox-bot.id,
+    vultr_instance.vpn.id,
     vultr_instance.master.id
   ])
 }
@@ -23,7 +23,7 @@ output "instance_ips" {
   value       = concat([
     for instance in vultr_instance.vulnbox : instance.main_ip
   ] , [
-    vultr_instance.vulnbox-bot.main_ip,
+    vultr_instance.vpn.main_ip,
     vultr_instance.master.main_ip
   ])
 }
