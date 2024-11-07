@@ -15,7 +15,6 @@
       - git
       - curl
       - locales
-    update_cache: true
 
 - name: Generate locales
   community.general.locale_gen:

@@ -110,3 +110,8 @@
     chain: POSTROUTING
     jump: MASQUERADE
     state: present
+
+- name: Reboot
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+    msg: "Rebooting to apply changes"

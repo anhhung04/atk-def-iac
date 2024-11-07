@@ -64,3 +64,13 @@
     password: "{{ lookup('file', './passwords/team' + inventory_hostname.split('-')[1] + '.txt') | password_hash('sha512') }}"
     update_password: always
   ignore_errors: false
+
+- name: Reboot
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+    reboot_msg: "Rebooting to apply changes"
+    test_command: uptime
+    connect_timeout: 30
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+    post_reboot_command: uptime

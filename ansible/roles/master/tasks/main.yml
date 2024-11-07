@@ -60,3 +60,8 @@
     group: root
     mode: "0755"
     state: link
+
+- name: Reboot
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+    msg: "Rebooting to apply changes"
