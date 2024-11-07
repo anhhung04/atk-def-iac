@@ -2,13 +2,16 @@ network:
   version: 2
   renderer: networkd
   ethernets:
-    enp8s0:
+    {{ game_interface }}:
       addresses:
         - 10.80.{{ tip }}.{{ fip }}/16
       routes:
         - to: 10.80.0.0/16
           via: 10.80.0.1
+    enp1s0:
+      dhcp4: true
       nameservers:
-        addresses:
-          - 8.8.8.8
-          - 8.8.4.4
+        addresses: [1.1.1.1, 1.0.0.1]
+      routes:
+        - to: 10.10.10.0/24
+          via: 10.80.0.1

@@ -4,7 +4,9 @@
     name:
       - iptables
       - iptables-persistent
+      - ipset
     state: present
+    update_cache: true
 
 - name: Stop Wireguard server
   ansible.builtin.systemd:
@@ -25,22 +27,60 @@
     state: started
     enabled: true
 
+- name: Enable iptables-persistent
+  ansible.builtin.systemd:
+    name: netfilter-persistent
+    state: started
+    enabled: true
+
+- name: Enable ipset
+  ansible.builtin.systemd:
+    name: ipset
+    state: started
+    enabled: true
+
 - name: Upload Network configs
   ansible.builtin.copy:
-    src: "./{{ item }}"
-    dest: "/etc/netplan/{{ item }}"
+    src: "./10-vpn.yaml"
+    dest: "/etc/netplan/10-vpn.yaml"
     owner: root
     group: root
     mode: "0600"
-  with_items:
-    - "./10-enp8s0.yaml"
-    - "./10-enp9s0.yaml"
+
+- name: Remove cloud-init
+  ansible.builtin.file:
+    path: "/etc/netplan/50-cloud-init.yaml"
+    state: absent
+
+- name: Turn off cloud-init
+  ansible.builtin.copy:
+    content: |
+      network: {config: disabled}
+    dest: "/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
+    owner: root
+    group: root
+    mode: "0644"
 
 - name: Apply new network configs
   ansible.builtin.command:
     cmd: netplan apply
   register: netplan_apply
   changed_when: netplan_apply.rc == 2
+
+- name: Upload ipset config
+  ansible.builtin.copy:
+    src: "./ipset"
+    dest: "/etc/network/if-pre-up.d/ipset"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Run ipset
+  ansible.builtin.command:
+    cmd: /etc/network/if-pre-up.d/ipset
+    creates: /tmp/ipset_conf
+  register: ipset
+  changed_when: false
 
 - name: Enable IP forwarding
   ansible.posix.sysctl:
@@ -60,58 +100,84 @@
     - { chain: FORWARD, policy: DROP }
     - { chain: OUTPUT, policy: ACCEPT }
 
-- name: Allow established connections
-  ansible.builtin.iptables:
-    chain: FORWARD
-    table: filter
-    jump: ACCEPT
-    state: present
-    ctstate: ESTABLISHED,RELATED
+- name: Allow traffic from 10.60.0.0/16 to 10.80.0.0/16
+  community.general.ufw:
+    from_ip: "10.60.0.0/16"
+    to_ip: "10.80.0.0/16"
+    proto: any
+    state: enabled
+    rule: allow
+    route: true
 
-- name: Forward from 10.10.10.0/24 to 10.80.0.0/16
-  ansible.builtin.iptables:
-    chain: FORWARD
-    source: 10.10.10.0/24
-    destination: 10.80.0.0/16
-    jump: ACCEPT
-    table: filter
-    state: present
+- name: Allow traffic from 10.10.10.0/24 to 10.80.0.0/16
+  community.general.ufw:
+    from_ip: "10.10.10.0/24"
+    to_ip: "10.80.0.0/16"
+    proto: any
+    state: enabled
+    rule: allow
+    route: true
 
-- name: Forward from 10.60.0.0/16 to 10.80.0.0/16
-  ansible.builtin.iptables:
-    chain: FORWARD
-    source: 10.60.0.0/16
-    destination: 10.80.0.0/16
-    jump: ACCEPT
-    table: filter
-    state: present
+- name: Allow traffic from 10.80.0.0/16 to 10.10.10.0/24
+  community.general.ufw:
+    from_ip: "10.80.0.0/16"
+    to_ip: "10.10.10.0/24"
+    proto: any
+    state: enabled
+    rule: allow
+    route: true
 
-- name: Forward from 10.80.0.0/16 to 10.80.0.0/16
-  ansible.builtin.iptables:
-    chain: FORWARD
-    source: 10.80.0.0/16
-    destination: 10.80.0.0/16
-    jump: ACCEPT
-    table: filter
-    state: present
+- name: Allow traffic from 10.60.0.0/16 to 10.10.10.0/24
+  community.general.ufw:
+    from_ip: "10.60.0.0/16"
+    to_ip: "10.10.10.0/24"
+    proto: any
+    state: enabled
+    rule: allow
+    route: true
 
-- name: Forward from 10.80.0.0/16 to 10.10.10.0/24
-  ansible.builtin.iptables:
-    chain: FORWARD
-    source: 10.80.0.0/16
-    destination: 10.10.10.0/24
-    jump: ACCEPT
-    table: filter
-    state: present
+- name: Allow traffic from 10.80.0.0/16 to 10.80.0.0/16
+  community.general.ufw:
+    from_ip: "10.80.0.0/16"
+    to_ip: "10.80.0.0/16"
+    proto: any
+    state: enabled
+    rule: allow
+    route: true
 
 - name: Setup NAT masquerading
   ansible.builtin.iptables:
     table: nat
     chain: POSTROUTING
     jump: MASQUERADE
+    destination: 10.80.0.0/16
     state: present
 
-- name: Reboot
-  ansible.builtin.reboot:
-    reboot_timeout: 300
-    msg: "Rebooting to apply changes"
+- name: Dump iptables rules
+  ansible.builtin.command:
+    cmd: iptables-save
+  register: iptables_rules
+  changed_when: false
+
+- name: Save iptables rules
+  ansible.builtin.copy:
+    content: "{{ iptables_rules.stdout }}"
+    dest: "/etc/iptables/rules.v4"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Upload scripts
+  ansible.builtin.copy:
+    src: "./scripts"
+    dest: "/root"
+    owner: root
+    group: root
+    mode: "0744"
+
+- name: Closed network
+  ansible.builtin.command:
+    cmd: /root/scripts/closed_network.sh
+    creates: /tmp/closed_network
+  register: closed_network
+  changed_when: false

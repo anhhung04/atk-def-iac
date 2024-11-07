@@ -1,6 +1,7 @@
 ---
 - name: Vulnbox setup
   hosts: vulnbox-machine
+  gather_facts: false
   become: true
   roles:
     - vulnbox

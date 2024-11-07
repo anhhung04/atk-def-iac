@@ -3,5 +3,5 @@
   hosts: vpn-machine
   become: true
   roles:
-    - common
-    - vpn
+    - { role: common, tags: common }
+    - { role: vpn, tags: vpn }

@@ -1,7 +1,0 @@
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    enp8s0:
-      addresses:
-        - 10.80.0.1/16

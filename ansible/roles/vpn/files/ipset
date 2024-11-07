@@ -1,0 +1,11 @@
+#!/bin/sh
+ipset create same-team hash:net,net
+ipset team-vulnbox hash:net,net
+for i in {1..4}; do
+    server_ip="10.$((80 + i / 256)).$((i % 256)).1"
+    client_ips="10.$((60 + i / 256)).$((i % 256)).0/16"
+    ipset add same-team $client_ips,$server_ip
+    ipset add team-vulnbox $client_ips,10.80.0.0/16
+done
+
+touch /tmp/ipset_conf

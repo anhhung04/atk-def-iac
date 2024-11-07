@@ -35,11 +35,6 @@
     group: root
     mode: "0600"
 
-- name: Remove cloud-init network
-  ansible.builtin.file:
-    path: "/etc/netplan/50-cloud-init.yaml"
-    state: absent
-
 - name: Add Admin Key
   ansible.builtin.uri:
     url: https://github.com/anhhung04.keys

@@ -11,23 +11,46 @@
 
 - name: Replace IP
   ansible.builtin.template:
-    src: "./10-enp8s0.yaml.j2"
-    dest: "/etc/netplan/10-enp8s0.yaml"
+    src: "./10-ctf.yaml.j2"
+    dest: "/etc/netplan/10-ctf.yaml"
     owner: root
     mode: "0600"
   vars:
     tip: "{{ inventory_hostname.split('-')[1] | lower }}"
-    fip: "2"
+    fip: "1"
 
-- name: Remove cloud-init network
+- name: Remove cloud-init
   ansible.builtin.file:
     path: "/etc/netplan/50-cloud-init.yaml"
     state: absent
 
+- name: Turn off cloud-init
+  ansible.builtin.copy:
+    content: |
+      network: {config: disabled}
+    dest: "/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: Apply new IP
   ansible.builtin.command:
     cmd: netplan apply
-    creates: /etc/netplan/something.yml
+  changed_when: false
+
+- name: Check if route exists
+  ansible.builtin.command:
+    cmd: "ip route show 10.80.0.0/16 dev enp8s0"
+  register: route_check
+  changed_when: false
+  failed_when: route_check.rc != 0 and route_check.rc != 2
+
+- name: Disable direct connection between vulnboxes
+  ansible.builtin.command:
+    cmd: "ip route del 10.80.0.0/16 dev enp8s0"
+  when: route_check.rc == 0
+  changed_when: "'10.80.0.0/16' in route_check.stdout"
+  failed_when: route_check.rc != 0
 
 - name: Upload SSH config
   ansible.builtin.copy:
@@ -64,11 +87,3 @@
     password: "{{ lookup('file', './passwords/team' + inventory_hostname.split('-')[1] + '.txt') | password_hash('sha512') }}"
     update_password: always
   ignore_errors: false
-
-- name: Reboot
-  ansible.builtin.reboot:
-    reboot_timeout: 300
-    test_command: uptime
-    connect_timeout: 30
-    pre_reboot_delay: 0
-    post_reboot_delay: 30

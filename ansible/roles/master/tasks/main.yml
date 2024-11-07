@@ -2,6 +2,7 @@
 - name: Install Open vSwitch
   ansible.builtin.apt:
     name: openvswitch-switch
+    update_cache: true
 
 - name: Install require python packages
   ansible.builtin.pip:
@@ -34,15 +35,30 @@
 
 - name: Upload Netplan configuration
   ansible.builtin.copy:
-    src: "./10-enp8s0.yaml"
-    dest: "/etc/netplan/10-enp8s0.yaml"
+    src: "./10-master.yaml"
+    dest: "/etc/netplan/10-master.yaml"
     owner: root
     group: root
     mode: "0600"
 
+- name: Remove cloud-init
+  ansible.builtin.file:
+    path: "/etc/netplan/50-cloud-init.yaml"
+    state: absent
+
+- name: Turn off cloud-init
+  ansible.builtin.copy:
+    content: |
+      network: {config: disabled}
+    dest: "/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: Apply Netplan configuration
   ansible.builtin.command:
     cmd: netplan apply
+  changed_when: false
 
 - name: Upload folder ForcAD
   ansible.builtin.copy:
@@ -60,8 +76,3 @@
     group: root
     mode: "0755"
     state: link
-
-- name: Reboot
-  ansible.builtin.reboot:
-    reboot_timeout: 300
-    msg: "Rebooting to apply changes"
