@@ -1,7 +1,17 @@
 ---
+- name: Install Open vSwitch
+  ansible.builtin.apt:
+    name: openvswitch-switch
+
 - name: Replace IP
-  ansible.builtin.shell:
-    cmd: sed -i 's/10\.80\.[0-9]\+\.[0-9]\+/10.80.{{ inventory_hostname.split("-")[1] }}.2/g' /etc/netplan/50-cloud-init.yaml
+  ansible.builtin.template:
+    src: "./10-enp8s0.yaml.j2"
+    dest: "/etc/netplan/10-enp8s0.yaml"
+    owner: root
+    mode: "0600"
+  vars:
+    tip: "{{ inventory_hostname.split('-')[1] | lower }}"
+    fip: "2"
 
 - name: Apply new IP
   ansible.builtin.command:

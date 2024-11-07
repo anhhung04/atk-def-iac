@@ -60,8 +60,6 @@ runcmd:
   - echo "net.ipv4.conf.all.accept_redirects=1" >> /etc/sysctl.conf
   - echo "net.ipv4.conf.default.accept_redirects=1" >> /etc/sysctl.conf
   - sysctl -p
-  - sed -E -i 's/10\.80\.[0-9]+\.[0-9]+/10.80.0.5/' /etc/netplan/50-cloud-init.yaml
-  - sed -E -i 's/10\.10\.[0-9]+\.[0-9]+/10.10.10.10/' /etc/netplan/50-cloud-init.yaml
   - netplan apply
 EOF
 }
