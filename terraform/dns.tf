@@ -2,6 +2,7 @@ module "dns" {
   source = "./modules/dns"
 
   domain_name = var.domain_name
+  ttl = 0
   a_records = [
     {
       name = "game"

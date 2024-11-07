@@ -25,6 +25,23 @@
     state: started
     enabled: true
 
+- name: Upload Network configs
+  ansible.builtin.copy:
+    src: "./{{ item }}"
+    dest: "/etc/netplan/{{ item }}"
+    owner: root
+    group: root
+    mode: "0600"
+  with_items:
+    - "./10-enp8s0.yaml"
+    - "./10-enp9s0.yaml"
+
+- name: Apply new network configs
+  ansible.builtin.command:
+    cmd: netplan apply
+  register: netplan_apply
+  changed_when: netplan_apply.rc == 2
+
 - name: Enable IP forwarding
   ansible.posix.sysctl:
     name: net.ipv4.ip_forward
@@ -51,10 +68,10 @@
     state: present
     ctstate: ESTABLISHED,RELATED
 
-- name: Forward from 10.10.10.0/16 to 10.80.0.0/16
+- name: Forward from 10.10.10.0/24 to 10.80.0.0/16
   ansible.builtin.iptables:
     chain: FORWARD
-    source: 10.10.10.0/16
+    source: 10.10.10.0/24
     destination: 10.80.0.0/16
     jump: ACCEPT
     table: filter
@@ -69,11 +86,11 @@
     table: filter
     state: present
 
-- name: Forward from 10.80.0.0/16 to 10.10.10.0/16
+- name: Forward from 10.80.0.0/16 to 10.10.10.0/24
   ansible.builtin.iptables:
     chain: FORWARD
     source: 10.80.0.0/16
-    destination: 10.10.10.0/16
+    destination: 10.10.10.0/24
     jump: ACCEPT
     table: filter
     state: present
@@ -84,11 +101,3 @@
     chain: POSTROUTING
     jump: MASQUERADE
     state: present
-
-- name: Change ips # noqa: command-instead-of-module, no-changed-when
-  ansible.builtin.shell:
-    cmd: |
-      sed -E -i 's/10\.80\.[0-9]+\.[0-9]+/10.80.0.5/' /etc/netplan/50-cloud-init.yaml
-      sed -E -i 's/10\.10\.[0-9]+\.[0-9]+/10.10.10.10/' /etc/netplan/50-cloud-init.yaml
-      netplan apply
-    executable: /bin/bash
