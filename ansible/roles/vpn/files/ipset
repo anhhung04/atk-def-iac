@@ -1,11 +1,27 @@
-#!/bin/sh
+#!/bin/bash
+set -e
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a /tmp/ipset-script.log
+}
+
+log "Destroying existing ipsets..."
+ipset destroy same-team || log "No existing same-team ipset"
+ipset destroy team-vulnbox || log "No existing team-vulnbox ipset"
+
+log "Creating new ipsets..."
 ipset create same-team hash:net,net
-ipset team-vulnbox hash:net,net
+ipset create team-vulnbox hash:net,net
+
+log "Adding rules..."
 for i in {1..4}; do
     server_ip="10.$((80 + i / 256)).$((i % 256)).1"
-    client_ips="10.$((60 + i / 256)).$((i % 256)).0/16"
+    client_ips="10.$((60 + i / 256)).$((i % 256)).0/24"
     ipset add same-team $client_ips,$server_ip
+    log "Added: $client_ips,$server_ip to same-team"
     ipset add team-vulnbox $client_ips,10.80.0.0/16
+    log "Added: $client_ips,10.80.0.0/16 to team-vulnbox"
 done
 
-touch /tmp/ipset_conf
+log "Configuration completed successfully"
+exit 0

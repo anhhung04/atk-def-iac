@@ -1,0 +1,13 @@
+[Unit]
+Description=Configure ipset rules
+After=network.target
+Before=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/etc/network/if-pre-up.d/ipset
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

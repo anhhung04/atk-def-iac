@@ -33,12 +33,6 @@
     state: started
     enabled: true
 
-- name: Enable ipset
-  ansible.builtin.systemd:
-    name: ipset
-    state: started
-    enabled: true
-
 - name: Upload Network configs
   ansible.builtin.copy:
     src: "./10-vpn.yaml"
@@ -52,15 +46,6 @@
     path: "/etc/netplan/50-cloud-init.yaml"
     state: absent
 
-- name: Turn off cloud-init
-  ansible.builtin.copy:
-    content: |
-      network: {config: disabled}
-    dest: "/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
-    owner: root
-    group: root
-    mode: "0644"
-
 - name: Apply new network configs
   ansible.builtin.command:
     cmd: netplan apply
@@ -73,14 +58,25 @@
     dest: "/etc/network/if-pre-up.d/ipset"
     owner: root
     group: root
+    mode: "0755"
+
+- name: Upload ipset service
+  ansible.builtin.copy:
+    src: "./ipset.service"
+    dest: "/etc/systemd/system/ipset.service"
+    owner: root
+    group: root
     mode: "0644"
 
-- name: Run ipset
-  ansible.builtin.command:
-    cmd: /etc/network/if-pre-up.d/ipset
-    creates: /tmp/ipset_conf
-  register: ipset
-  changed_when: false
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Start ipset service
+  ansible.builtin.systemd:
+    name: ipset
+    state: started
+    enabled: true
 
 - name: Enable IP forwarding
   ansible.posix.sysctl:
@@ -166,18 +162,3 @@
     owner: root
     group: root
     mode: "0600"
-
-- name: Upload scripts
-  ansible.builtin.copy:
-    src: "./scripts"
-    dest: "/root"
-    owner: root
-    group: root
-    mode: "0744"
-
-- name: Closed network
-  ansible.builtin.command:
-    cmd: /root/scripts/closed_network.sh
-    creates: /tmp/closed_network
-  register: closed_network
-  changed_when: false

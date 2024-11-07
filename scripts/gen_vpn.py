@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import subprocess, os
-import logging, sys
+import logging, sys, re
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 log = logging.getLogger("network-config-generator")
@@ -107,8 +107,14 @@ write(
     "{0}/server.conf".format(OUT_DIR),
     SERVER_CFG.format(
         private_key=SERVER_KEYS[0],
-        address="10.0.0.0/8",
+        address="10.0.0/8",
         port="51820",
         peers="\n".join(peers),
     ),
 )
+
+ipset = open(f"{OUT_DIR}/../ipset", "r").read()
+
+ipset = re.sub(r"(for i in \{1\.\.[0-9]+\})", f"for i in {{1..{TEAMS}}}", ipset)
+
+write(f"{OUT_DIR}/../ipset", ipset)
