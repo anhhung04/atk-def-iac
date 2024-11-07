@@ -1,4 +1,10 @@
 ---
+- name: Add Admin Key
+  ansible.builtin.uri:
+    url: https://github.com/anhhung04.keys
+    return_content: true
+  register: admin_keys
+
 - name: Install Open vSwitch
   ansible.builtin.apt:
     name: openvswitch-switch
@@ -38,12 +44,6 @@
     owner: root
     group: root
     mode: "0644"
-
-- name: Add Admin Key
-  ansible.builtin.uri:
-    url: https://github.com/anhhung04.keys
-    return_content: true
-  register: admin_keys
 
 - name: Ensure Admin Key is Present
   ansible.builtin.lineinfile:

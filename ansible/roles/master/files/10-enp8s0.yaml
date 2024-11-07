@@ -5,6 +5,6 @@ network:
     enp8s0:
       routes:
         - to: 10.80.0.0/16
-          via: 10.10.10.10
+          via: 10.10.10.1
       addresses:
         - 10.10.10.5/16

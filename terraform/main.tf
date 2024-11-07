@@ -45,20 +45,9 @@ package_upgrade: true
 packages:
   - sudo
   - wireguard
-  - resolvconf
-  - iptables-persistent
-  - unbound
-  - unbound-host
-  - unbound-anchor
-  - openvswitch-switch
-
 runcmd:
   - echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
   - echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.conf
-  - echo "net.ipv4.conf.all.rp_filter=2" >> /etc/sysctl.conf
-  - echo "net.ipv4.conf.default.rp_filter=2" >> /etc/sysctl.conf
-  - echo "net.ipv4.conf.all.accept_redirects=1" >> /etc/sysctl.conf
-  - echo "net.ipv4.conf.default.accept_redirects=1" >> /etc/sysctl.conf
   - sysctl -p
 EOF
 }

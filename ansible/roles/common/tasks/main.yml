@@ -54,3 +54,8 @@
     mode: "0644"
     create: true
     state: present
+
+- name: Restart SSH
+  ansible.builtin.service:
+    name: ssh
+    state: restarted

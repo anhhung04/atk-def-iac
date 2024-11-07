@@ -1,11 +1,4 @@
 ---
-# - name: Upload folder ForcAD
-#   ansible.builtin.copy:
-#     src: "./ForcAD"
-#     dest: "/root"
-#     owner: root
-#     group: root
-#     mode: "0744"
 - name: Install Open vSwitch
   ansible.builtin.apt:
     name: openvswitch-switch
@@ -21,15 +14,15 @@
 - name: Upload install Docker script
   ansible.builtin.copy:
     src: "./install_docker.sh"
-    dest: "/root/ForcAD/install_docker.sh"
+    dest: "/tmp/install_docker.sh"
     owner: root
     group: root
     mode: "0755"
 
 - name: Install Docker
   ansible.builtin.command:
-    cmd: "/root/ForcAD/install_docker.sh"
-    creates: "/root/ForcAD/docker_marker"
+    cmd: "/tmp/install_docker.sh"
+    creates: "/tmp/docker_marker"
 
 - name: Upload start router script
   ansible.builtin.copy:
@@ -50,6 +43,14 @@
 - name: Apply Netplan configuration
   ansible.builtin.command:
     cmd: netplan apply
+
+- name: Upload folder ForcAD
+  ansible.builtin.copy:
+    src: "./ForcAD"
+    dest: "/root"
+    owner: root
+    group: root
+    mode: "0744"
 
 - name: Link control
   ansible.builtin.file:
