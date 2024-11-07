@@ -68,9 +68,7 @@
 - name: Reboot
   ansible.builtin.reboot:
     reboot_timeout: 300
-    reboot_msg: "Rebooting to apply changes"
     test_command: uptime
     connect_timeout: 30
     pre_reboot_delay: 0
     post_reboot_delay: 30
-    post_reboot_command: uptime
