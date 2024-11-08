@@ -19,40 +19,57 @@ class Checker(BaseChecker):
             super(Checker, self).action(action, *args, **kwargs)
         except requests.exceptions.ConnectionError:
             self.cquit(Status.DOWN, 'Connection error', 'Got requests connection error')
+        except requests.exceptions.Timeout:
+            self.cquit(Status.DOWN, 'Timeout', 'Request timed out')
 
     def check(self):
-        session = get_initialized_session()
-        username = rnd_username()
-        password = rnd_string(10)
-        note_content = rnd_string(20)
+        try:
+            session = get_initialized_session()
+            username = rnd_username()
+            password = rnd_string(10)
+            note_content = rnd_string(20)
 
-        self.mch.register_user(session, username, password)
-        self.mch.login(session, username, password)
-        note_id = self.mch.store_data(session, note_content).split(": ")[-1]
-        fetched_data = self.mch.read_data(session, note_id)
+            self.mch.register_user(session, username, password)
+            self.mch.login(session, username, password)
+            note_id = self.mch.store_data(session, note_content).split(": ")[-1]
+            fetched_data = self.mch.read_data(session, note_id)
 
-        self.assert_eq(fetched_data, note_content, "Stored data does not match fetched data")
-        self.cquit(Status.OK)
+            self.assert_eq(fetched_data, note_content, "Stored data does not match fetched data", Status.CORRUPT)
+            self.cquit(Status.OK)
+        except AssertionError as e:
+            self.cquit(Status.MUMBLE, 'Data mismatch or incorrect behavior', str(e))
+        except requests.exceptions.RequestException as e:
+            self.cquit(Status.DOWN, 'Request failure', str(e))
 
     def put(self, flag_id: str, flag: str, vuln: str):
-        session = get_initialized_session()
-        username = rnd_username()
-        password = rnd_string(10)
-        
-        self.mch.register_user(session, username, password)
-        self.mch.login(session, username, password)
-        note_id = self.mch.store_data(session, flag).split(": ")[-1]
-        self.cquit(Status.OK, note_id, f"{username}:{password}:{note_id}")
+        try:
+            session = get_initialized_session()
+            username = rnd_username()
+            password = rnd_string(10)
+
+            self.mch.register_user(session, username, password)
+            self.mch.login(session, username, password)
+            note_id = self.mch.store_data(session, flag).split(": ")[-1]
+            self.cquit(Status.OK, note_id, f"{username}:{password}:{note_id}")
+        except AssertionError as e:
+            self.cquit(Status.MUMBLE, 'Error during data storage', str(e))
+        except requests.exceptions.RequestException as e:
+            self.cquit(Status.DOWN, 'Request failure', str(e))
 
     def get(self, flag_id: str, flag: str, vuln: str = None):
-        session = get_initialized_session()
-        username, password, note_id = flag_id.split(":")
-
-        self.mch.login(session, username, password)
-        fetched_data = self.mch.read_data(session, note_id)
-
-        self.assert_eq(fetched_data, flag, "Fetched flag does not match", Status.CORRUPT)
-        self.cquit(Status.OK)
+        try:
+            session = get_initialized_session()
+            username, password, note_id = flag_id.split(":")
+            
+            self.mch.login(session, username, password)
+            fetched_data = self.mch.read_data(session, note_id)
+            self.assert_eq(fetched_data, flag, "Fetched flag does not match", Status.CORRUPT)
+            self.cquit(Status.OK)
+            
+        except AssertionError as e:
+            self.cquit(Status.CORRUPT, 'Data corrupted', str(e))
+        except requests.exceptions.RequestException as e:
+            self.cquit(Status.DOWN, 'Request failure', str(e))
 
 if __name__ == '__main__':
     c = Checker(sys.argv[2])
