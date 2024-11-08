@@ -29,31 +29,70 @@ class Checker(BaseChecker):
             )
 
     def check(self):
-        note_content = rnd_string(100)
+        self.mch.connect()
+
+        username = rnd_username(8)
+        password = rnd_password(12)
+
+        self.mch.register_user(username, password)
+        self.mch.login_user(username, password)
+
+        note_content = rnd_string(50)
         note_id = self.mch.add_note(note_content)
-        self.assert_in(
-            f"Note added successfully with ID: {note_id}", self.mch.view_notes()
-        )
 
         notes = self.mch.view_notes()
-        assert_in(note_content, notes)
+        assert_in(note_content, notes, "Note not found", Status.MUMBLE)
 
         new_content = rnd_string(50)
 
         self.mch.edit_note(note_id, new_content)
-        self.assert_in(new_content, c.view_notes())
+        self.assert_in(new_content, self.mch.view_notes(), Status.MUMBLE)
 
-    def put(self, flag_id: str, flag: str):
-        ssn = rnd_string(9)
+        self.mch.delete_note(note_id)
 
-        self.mch.add_document(ssn, flag)
-        self.cquit(Status.OK, ssn, f"{ssn}:{flag}")
+        self.assert_nin(
+            new_content, self.mch.view_notes(), "Note deletion failed", Status.MUMBLE
+        )
 
-    def get(self, flag_id: str, flag: str):
-        ssn, _ = flag_id.split(":")
-        fetched_flag = self.mch.sqli_fetch_document(ssn)
+        user_info = self.mch.print_user_info()
 
-        self.assert_in(flag, fetched_flag, "Flag mismatch", Status.CORRUPT)
+        self.assert_in("Username:", user_info, "Cannot get username")
+        self.assert_in("Admin:", user_info, "Cannot check admin")
+
+        self.mch.disconnect()
+
+        self.cquit(Status.OK)
+
+    def put(self, flag_id: str, flag: str, vuln=None):
+        self.mch.connect()
+        username = rnd_username(8)
+        password = rnd_password(12)
+
+        self.mch.register_user(username, password)
+
+        self.mch.login_user(username, password)
+
+        note_content = f"Secret information: {flag}"
+
+        note_id = self.mch.add_note(rnd_string(50))
+
+        self.mch.edit_note(note_id, note_content)
+
+        self.mch.disconnect()
+
+        self.cquit(Status.OK, username, f"{username}:{password}:{note_id}")
+
+    def get(self, flag_id: str, flag: str, vuln=None):
+        username, password, _ = flag_id.split(":")
+        self.mch.connect()
+        self.mch.login_user(username, password)
+
+        notes = self.mch.view_notes()
+
+        self.assert_in(flag, notes, "Note not found", Status.CORRUPT)
+
+        self.mch.disconnect()
+
         self.cquit(Status.OK)
 
 

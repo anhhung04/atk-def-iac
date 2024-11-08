@@ -7,8 +7,7 @@
 #define MAX_USERNAME_LENGTH 50
 #define MAX_PASSWORD_LENGTH 50
 #define MAX_CONTENT_LENGTH 1280
-#define MAX_SQL_LENGTH 1024
-#define MAX_NOTES 10
+#define MAX_SQL_LENGTH 2048
 
 #define DB_PATH "/tmp/notes.db"
 
@@ -19,14 +18,7 @@ typedef struct
     int is_admin;
 } User;
 
-typedef struct
-{
-    int id;
-    char *content;
-} Note;
-
 User current_user = {"", 0, 0};
-Note *notes[MAX_NOTES] = {NULL};
 
 sqlite3 *db;
 
@@ -38,6 +30,102 @@ void vulnerable_memcpy(char *dest, const char *src, size_t n)
     }
 }
 
+void init_database()
+{
+    int rc = sqlite3_open(DB_PATH, &db);
+    if (rc != SQLITE_OK)
+    {
+        fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        exit(1);
+    }
+
+    char *sql = "CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, is_admin INTEGER);"
+                "CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT, content TEXT);";
+    char *err_msg = 0;
+    rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+
+    if (rc != SQLITE_OK)
+    {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+        sqlite3_close(db);
+        exit(1);
+    }
+}
+
+void register_user()
+{
+    char username[MAX_USERNAME_LENGTH];
+    char password[MAX_PASSWORD_LENGTH];
+
+    printf("Enter username: ");
+    scanf("%49s", username);
+    printf("Enter password: ");
+    scanf("%49s", password);
+
+    char sql[MAX_SQL_LENGTH];
+    snprintf(sql, sizeof(sql), "INSERT INTO users (username, password, is_admin) VALUES ('%s', '%s', 0);", username, password);
+
+    char *err_msg = 0;
+    int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+
+    if (rc != SQLITE_OK)
+    {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    }
+    else
+    {
+        printf("User registered successfully\n");
+    }
+}
+
+void login()
+{
+    char username[MAX_USERNAME_LENGTH];
+    char password[MAX_PASSWORD_LENGTH];
+
+    printf("Enter username: ");
+    scanf("%49s", username);
+    printf("Enter password: ");
+    scanf("%49s", password);
+
+    char sql[MAX_SQL_LENGTH];
+    snprintf(sql, sizeof(sql), "SELECT is_admin FROM users WHERE username = '%s' AND password = '%s';", username, password);
+
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
+
+    if (rc != SQLITE_OK)
+    {
+        fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+        return;
+    }
+
+    rc = sqlite3_step(stmt);
+
+    if (rc == SQLITE_ROW)
+    {
+        strncpy(current_user.username, username, MAX_USERNAME_LENGTH);
+        current_user.logged_in = 1;
+        current_user.is_admin = sqlite3_column_int(stmt, 0);
+        printf("Login successful\n");
+    }
+    else
+    {
+        printf("Invalid username or password\n");
+    }
+
+    sqlite3_finalize(stmt);
+}
+
+void logout()
+{
+    memset(&current_user, 0, sizeof(User));
+    printf("Logged out successfully\n");
+}
+
 void add_note()
 {
     if (!current_user.logged_in)
@@ -47,34 +135,26 @@ void add_note()
     }
 
     char content[MAX_CONTENT_LENGTH];
-    int note_id = -1;
-
-    for (int i = 0; i < MAX_NOTES; i++)
-    {
-        if (notes[i] == NULL)
-        {
-            note_id = i;
-            break;
-        }
-    }
-
-    if (note_id == -1)
-    {
-        printf("Maximum number of notes reached\n");
-        return;
-    }
-
     printf("Enter your note content: ");
-    getchar();
     fgets(content, sizeof(content), stdin);
     content[strcspn(content, "\n")] = 0;
 
-    notes[note_id] = (Note *)malloc(sizeof(Note));
-    notes[note_id]->id = note_id;
-    notes[note_id]->content = (char *)malloc(strlen(content) + 1);
-    vulnerable_memcpy(notes[note_id]->content, content, strlen(content) + 1);
+    char sql[MAX_SQL_LENGTH];
+    snprintf(sql, sizeof(sql), "INSERT INTO notes (username, content) VALUES ('%s', '%s');", current_user.username, content);
 
-    printf("Note added successfully with ID: %d\n", note_id);
+    char *err_msg = 0;
+    int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+
+    if (rc != SQLITE_OK)
+    {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    }
+    else
+    {
+        sqlite3_int64 last_id = sqlite3_last_insert_rowid(db);
+        printf("Note added successfully with ID: %lld\n", last_id);
+    }
 }
 
 void view_notes()
@@ -85,16 +165,29 @@ void view_notes()
         return;
     }
 
-    printf("Your notes:\n");
-    for (int i = 0; i < MAX_NOTES; i++)
+    char sql[MAX_SQL_LENGTH];
+    snprintf(sql, sizeof(sql), "SELECT id, content FROM notes WHERE username = '%s';", current_user.username);
+
+    sqlite3_stmt *stmt;
+    int rc = sqlite3_prepare_v2(db, sql, -1, &stmt, 0);
+
+    if (rc != SQLITE_OK)
     {
-        if (notes[i] != NULL)
-        {
-            printf("Note ID: %d\n", notes[i]->id);
-            printf("Content: %s\n", notes[i]->content);
-            printf("--------------------\n");
-        }
+        fprintf(stderr, "Failed to execute statement: %s\n", sqlite3_errmsg(db));
+        return;
     }
+
+    printf("Notes:\n");
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        int id = sqlite3_column_int(stmt, 0);
+        const unsigned char *content = sqlite3_column_text(stmt, 1);
+        printf("Note ID: %d\n", id);
+        printf("Content: %s\n", content);
+        printf("--------------------\n");
+    }
+
+    sqlite3_finalize(stmt);
 }
 
 void delete_note()
@@ -109,16 +202,21 @@ void delete_note()
     printf("Enter the ID of the note you want to delete: ");
     scanf("%d", &note_id);
 
-    if (note_id < 0 || note_id >= MAX_NOTES || notes[note_id] == NULL)
+    char sql[MAX_SQL_LENGTH];
+    snprintf(sql, sizeof(sql), "DELETE FROM notes WHERE id = %d AND username = '%s';", note_id, current_user.username);
+
+    char *err_msg = 0;
+    int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+
+    if (rc != SQLITE_OK)
     {
-        printf("Invalid note ID\n");
-        return;
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
     }
-
-    free(notes[note_id]->content);
-    free(notes[note_id]);
-
-    printf("Note deleted successfully\n");
+    else
+    {
+        printf("Note deleted successfully\n");
+    }
 }
 
 void edit_note()
@@ -135,23 +233,26 @@ void edit_note()
     printf("Enter the ID of the note you want to edit: ");
     scanf("%d", &note_id);
 
-    if (note_id < 0 || note_id >= MAX_NOTES || notes[note_id] == NULL)
-    {
-        printf("Invalid note ID\n");
-        return;
-    }
-
     printf("Enter new content: ");
     getchar();
     fgets(new_content, sizeof(new_content), stdin);
     new_content[strcspn(new_content, "\n")] = 0;
 
-    free(notes[note_id]->content);
-    notes[note_id]->content = (char *)malloc(strlen(new_content) + 1);
-    strcpy(notes[note_id]->content, new_content);
-    free(notes[note_id]->content);
+    char sql[MAX_SQL_LENGTH];
+    snprintf(sql, sizeof(sql), "UPDATE notes SET content = '%s' WHERE id = %d AND username = '%s';", new_content, note_id, current_user.username);
 
-    printf("Note edited successfully\n");
+    char *err_msg = 0;
+    int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+
+    if (rc != SQLITE_OK)
+    {
+        fprintf(stderr, "SQL error: %s\n", err_msg);
+        sqlite3_free(err_msg);
+    }
+    else
+    {
+        printf("Note edited successfully\n");
+    }
 }
 
 void print_flag()
@@ -193,12 +294,15 @@ void create_super_note()
     printf("Enter the size of the super note: ");
     scanf("%u", &size);
 
-    char *super_note = (char *)malloc(size + 1);
+    char *super_note = (char *)malloc(size);
     if (super_note == NULL)
     {
         printf("Failed to allocate memory for super note\n");
         return;
     }
+
+    printf("Enter super note content: ");
+    scanf("%s", super_note);
 
     printf("Super note created successfully\n");
     free(super_note);
@@ -210,54 +314,69 @@ int main()
     setvbuf(stderr, NULL, _IONBF, 0);
     setvbuf(stdin, NULL, _IONBF, 0);
 
+    init_database();
+
     int choice;
 
     while (1)
     {
         printf("\nWelcome to the Note Management System\n"
                "What would you like to do?\n"
-               "1. Add new note\n"
-               "2. View notes\n"
-               "3. Delete note\n"
-               "4. Edit note\n"
-               "5. Print user info\n"
-               "6. Create super note (Admin only)\n"
-               "7. Print flag (Admin only)\n"
-               "8. Exit\n"
+               "1. Register\n"
+               "2. Login\n"
+               "3. Add new note\n"
+               "4. View notes\n"
+               "5. Delete note\n"
+               "6. Edit note\n"
+               "7. Print user info\n"
+               "8. Create super note (Admin only)\n"
+               "9. Print flag (Admin only)\n"
+               "10. Logout\n"
+               "11. Exit\n"
                "Your choice: ");
         scanf("%d", &choice);
+        getchar();
 
         switch (choice)
         {
         case 1:
-            add_note();
+            register_user();
             break;
         case 2:
-            view_notes();
+            login();
             break;
         case 3:
-            delete_note();
+            add_note();
             break;
         case 4:
-            edit_note();
+            view_notes();
             break;
         case 5:
-            print_user_info();
+            delete_note();
             break;
         case 6:
-            create_super_note();
+            edit_note();
             break;
         case 7:
-            print_flag();
+            print_user_info();
             break;
         case 8:
+            create_super_note();
+            break;
+        case 9:
+            print_flag();
+            break;
+        case 10:
+            logout();
+            break;
+        case 11:
             printf("Goodbye!\n");
+            sqlite3_close(db);
             return 0;
         default:
             printf("Invalid choice\n");
             break;
         }
     }
-
     return 0;
 }
