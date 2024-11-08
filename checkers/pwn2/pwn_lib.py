@@ -1,36 +1,64 @@
-from pwn import *
+#!/usr/bin/env python3
+
 from checklib import *
+from pwn import *
+import string
+import re
 
-context.log_level = 'warn'
+PORT = 31337
 
-PORT = 5501  
 
 class CheckMachine:
     def __init__(self, checker: BaseChecker):
         self.c = checker
-        self.host = self.c.host
-        self.port = PORT
 
-    def send_recv(self, data: str) -> str:
-        conn = remote(self.host, self.port)
-        conn.sendline(data.encode('utf-8'))
-        response = conn.recvall().decode('utf-8')
-        conn.close()
-        return response
+    def connect(self):
+        self._conn = remote(self.c.host, PORT)
 
-    def add_document(self, ssn: str, content: str):
-        interaction = f"1\n{ssn}\n{content}\n"
-        response = self.send_recv(interaction)
-        self.c.assert_in("document", response, f"Failed to add document, response was: {response}")
+    def disconnect(self):
+        self._conn.close()
 
-    def fetch_document(self, ssn: str) -> str:
-        interaction = f"2\n{ssn}\n"
-        response = self.send_recv(interaction)
-        self.c.assert_in("Your contents", response, "Failed to fetch document")
-        return response
+    def readline(self):
+        return self._conn.recvline().decode(errors="ignore").strip()
 
-    def sqli_fetch_document(self, payload: str) -> str:
-        interaction = f"2\n{payload}\n"
-        response = self.send_recv(interaction)
-        self.c.assert_in("Your contents", response, "Failed to fetch document via SQLi")
-        return response
+    def read_until(self, marker):
+        return self._conn.recvuntil(marker.encode()).decode(errors="ignore")
+
+    def choice(self, line):
+        self._conn.sendlineafter("choice: ", line.encode())
+
+    def add_note(self, content):
+        self.choice("1")
+        self._conn.sendlineafter(b"Enter your note content: ", content.encode())
+        response = self._conn.recvline()
+        match = re.search(r"Note added successfully with ID: (\d+)", response)
+        self.c.assert_neq(match, None, "Failed to add note")
+        return int(match.group(1))
+
+    def view_notes(self):
+        self.choice("2")
+        return self.read_until("Your")
+
+    def delete_note(self, note_id):
+        self.choice("3")
+        self._conn.sendlineafter(
+            b"Enter the ID of the note you want to delete: ", str(note_id).encode()
+        )
+        return self.read_until("Your")
+
+    def edit_note(self, note_id, new_content):
+        self.choice("4")
+        self._conn.sendlineafter(
+            b"Enter the ID of the note you want to edit: ", str(note_id).encode()
+        )
+        self._conn.sendlineafter(b"Enter new content: ", new_content.encode())
+        return self.read_until("Your")
+
+    def print_user_info(self):
+        self.choice("5")
+        return self.read_until("Your")
+
+    def create_super_note(self, size):
+        self.choice("6")
+        self._conn.sendafter("Enter the size of the super note: ", str(size).encode())
+        return self.read_until("Your")
