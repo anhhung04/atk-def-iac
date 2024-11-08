@@ -17,11 +17,6 @@ build {
     destination = "/tmp/game-service@.service"
   }
 
-  provisioner "file" {
-    source   = "./internal"
-    destination = "/tmp"
-  }
-
   provisioner "shell" {
     script = "./scripts/prepare_services.sh"
   }
