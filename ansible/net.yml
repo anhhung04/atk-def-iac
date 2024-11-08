@@ -3,15 +3,8 @@
   hosts: vpn-machine
   tags: close
   become: true
+  gather_facts: false
   tasks:
-    - name: Deny connetion from team to other vulnbox
-      community.general.ufw:
-        from_ip: "10.60.0.0/16"
-        to_ip: "10.80.0.0/16"
-        proto: any
-        rule: deny
-        route: true
-
     - name: Allow connection from team to vulnbox
       community.general.ufw:
         from_ip: "10.{{ 60 + (item + 1) // 256 }}.{{ (item + 1) % 256 }}.0/24"
@@ -19,7 +12,16 @@
         proto: any
         rule: allow
         route: true
+        insert: 2
       loop: "{{ range(2) | list }}"
+
+    - name: Deny connetion from team to other vulnbox
+      community.general.ufw:
+        from_ip: "10.60.0.0/16"
+        to_ip: "10.80.0.0/16"
+        proto: any
+        rule: deny
+        route: true
 
     - name: Deny connection between vulnboxes
       community.general.ufw:
@@ -33,6 +35,7 @@
   hosts: vpn-machine
   tags: open
   become: true
+  gather_facts: false
   tasks:
     - name: Allow connection between vulnboxes
       community.general.ufw:
@@ -47,14 +50,24 @@
         from_ip: "10.60.0.0/16"
         to_ip: "10.80.0.0/16"
         proto: any
-        state: enabled
         rule: allow
         route: true
+
+    - name: Allow connection from team to vulnbox
+      community.general.ufw:
+        from_ip: "10.{{ 60 + (item + 1) // 256 }}.{{ (item + 1) % 256 }}.0/24"
+        to_ip: "10.{{ 80 + (item + 1) // 256 }}.{{ (item + 1) % 256 }}.0/24"
+        proto: any
+        rule: allow
+        route: true
+        delete: true
+      loop: "{{ range(2) | list }}"
 
 - name: Limit team
   hosts: vpn-machine
   tags: limit
   become: true
+  gather_facts: false
   tasks:
     - name: Limit team
       community.general.ufw:

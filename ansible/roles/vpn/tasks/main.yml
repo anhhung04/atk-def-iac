@@ -5,6 +5,7 @@
       - iptables
       - iptables-persistent
       - ipset
+      - openvswitch-switch
     state: present
     update_cache: true
 

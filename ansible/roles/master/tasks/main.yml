@@ -46,15 +46,6 @@
     path: "/etc/netplan/50-cloud-init.yaml"
     state: absent
 
-- name: Turn off cloud-init
-  ansible.builtin.copy:
-    content: |
-      network: {config: disabled}
-    dest: "/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
-    owner: root
-    group: root
-    mode: "0644"
-
 - name: Apply Netplan configuration
   ansible.builtin.command:
     cmd: netplan apply
